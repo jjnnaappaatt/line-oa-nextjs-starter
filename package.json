@@ -1,0 +1,27 @@
+{
+  "name": "line-oa-nextjs-starter",
+  "version": "1.0.0",
+  "private": false,
+  "description": "A self-contained, from-scratch example of a LINE Official Account web app on Next.js: LIFF login, signed webhooks, outbound push, Flex messages, a scheduled reminder engine, and an RSVP round-trip — no @line/bot-sdk, every LINE call is a visible fetch.",
+  "license": "MIT",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@line/liff": "^2.29.0",
+    "@supabase/supabase-js": "^2.108.2",
+    "next": "^15.5.19",
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
+    "server-only": "^0.0.1"
+  },
+  "devDependencies": {
+    "@types/node": "22.15.3",
+    "@types/react": "19.1.2",
+    "@types/react-dom": "19.1.2",
+    "typescript": "5.8.3"
+  }
+}
