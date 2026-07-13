@@ -69,7 +69,12 @@ export function LiffProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const liffId = process.env.NEXT_PUBLIC_LIFF_ID;
-    if (!liffId) return; // LINE not configured → standalone web, no-op.
+    if (!liffId) {
+      // LINE not configured → standalone web. Nothing to initialize, but mark ready so the UI leaves
+      // the loading state and renders its signed-out view.
+      setState((s) => ({ ...s, ready: true }));
+      return;
+    }
 
     let cancelled = false;
     (async () => {

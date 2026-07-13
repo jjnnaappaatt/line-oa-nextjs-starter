@@ -6,6 +6,8 @@ It is deliberately **not** built on `@line/bot-sdk` — every call to the LINE p
 
 > Extracted and generalized from a production system. The business domain has been stripped out; what remains is the reusable LINE plumbing.
 
+![The LINE OA Next.js Starter home page — a LIFF session card with a "Connect LINE account" button, and a card listing the fundamentals it covers: LINE Login, signed webhook, push + Flex, scheduled reminders, and an RSVP round-trip.](docs/screenshot.png)
+
 ---
 
 ## What it demonstrates
