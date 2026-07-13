@@ -126,6 +126,12 @@ Deploys to Vercel as-is. `vercel.json` registers a daily cron for `/api/cron/rem
 - The **service-role** Supabase key is server-only (`lib/supabase/server.ts`), never shipped to the browser. Because it bypasses RLS, `auth.uid()` is NULL — that's why writes pass identity explicitly (see the `web_line_subscribe` function and [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)).
 - The demo admin endpoints use a single shared secret (`ADMIN_SECRET`). Replace with real auth/roles for anything beyond a demo.
 
+## Contributing
+
+Contributions are welcome — especially fixes and doc clarifications that keep the fundamentals easy to
+read. Please see [CONTRIBUTING.md](CONTRIBUTING.md) for the guiding principles (visible-over-clever, no
+`@line/bot-sdk`, minimal deps) and the dev / PR checklist.
+
 ## License
 
 [MIT](LICENSE) — free to learn from, fork, and build on.
