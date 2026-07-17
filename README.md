@@ -4,7 +4,7 @@ A **self-contained, from-scratch example** of the fundamentals of a [LINE Offici
 
 It is deliberately **not** built on `@line/bot-sdk` — every call to the LINE platform is a plain `fetch`, so nothing is a black box. You can read the ~10 lines that verify a webhook signature, the ~15 lines that push a message, and the OAuth-token exchange that turns a LINE login into a session. Fork it, rename the domain, and you have a working LINE web app.
 
-> Extracted and generalized from a production system. The business domain has been stripped out; what remains is the reusable LINE plumbing.
+> Extracted and generalized from a production system. The business domain has been stripped out; what remains is the reusable LINE plumbing. Want to see these fundamentals embedded in a full production-shaped system instead? See **[NEDP](https://github.com/jjnnaappaatt/NEDP)** — a Thai national elderly-screening platform with the same LINE plumbing plus real dashboards, scoring, and exports.
 
 ![The LINE OA Next.js Starter home page — a LIFF session card with a "Connect LINE account" button, and a card listing the fundamentals it covers: LINE Login, signed webhook, push + Flex, scheduled reminders, and an RSVP round-trip.](docs/screenshot.png)
 
