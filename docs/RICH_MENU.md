@@ -34,6 +34,9 @@ handled by `lib/line/webhook.ts`; the fuzzy matcher means small variations still
 Each area's `action` can be `{"type":"message","text":"status"}` (routes into your bot) or
 `{"type":"uri","uri":"https://liff.line.me/<LIFF_ID>/"}`.
 
+A zone can also open the **human handoff** — give it `{"type":"message","text":"talk to a human"}` and the
+bot steps aside so a staff member can reply from the LINE OA Manager console (see `docs/ARCHITECTURE.md` §2).
+
 ```bash
 TOKEN="$LINE_CHANNEL_ACCESS_TOKEN"
 

@@ -5,7 +5,7 @@
  *
  * Language-agnostic engine — swap the alias tables below for your own commands (any language).
  */
-export type CommandKey = "help" | "list" | "status" | "manage" | "report" | "cancel";
+export type CommandKey = "help" | "list" | "status" | "manage" | "report" | "human" | "resume" | "cancel";
 
 // canonical label + accepted aliases (add your own; mix languages freely)
 const COMMANDS: Record<Exclude<CommandKey, "cancel">, [string, string[]]> = {
@@ -14,6 +14,10 @@ const COMMANDS: Record<Exclude<CommandKey, "cancel">, [string, string[]]> = {
   status: ["status", ["status", "check", "progress", "this month"]],
   manage: ["manage", ["manage", "settings", "subscriptions", "unsubscribe list"]],
   report: ["report an issue", ["report", "issue", "bug", "problem", "support", "help me"]],
+  // Human handoff: pause the bot so a staff member can reply from the LINE OA Manager console.
+  human: ["talk to a human", ["talk to a human", "talk to human", "human", "staff", "agent", "operator", "real person", "live agent", "representative", "speak to someone"]],
+  // Hand control back to the automated bot after a handoff.
+  resume: ["resume bot", ["resume", "resume bot", "bot", "done", "back"]],
 };
 
 export function normalize(text: string): string {

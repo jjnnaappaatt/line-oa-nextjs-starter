@@ -18,6 +18,7 @@ It is deliberately **not** built on `@line/bot-sdk` — every call to the LINE p
 | **Signed inbound webhook** → `X-Line-Signature` HMAC verification → event dispatch | `app/api/webhooks/line/route.ts`, `lib/line/webhook.ts` |
 | **Outbound push** + **Flex messages** | `lib/line/push.ts`, `lib/line/flex.ts` |
 | **Command bot** with a fuzzy matcher + serverless conversation state | `lib/line/webhook.ts`, `lib/line/fuzzy.ts` |
+| **Human handoff** — "talk to a human" pauses the bot (TTL) so staff reply from the OA Manager console | `lib/line/webhook.ts` (`cmdHuman`, `isHandedOff`), `lib/line/fuzzy.ts` |
 | **Scheduled reminders** with advance → due → overdue escalation | `lib/line/reminders.ts`, `app/api/cron/reminders/route.ts` |
 | **RSVP round-trip** — push an invite, user taps, postback is stored | `lib/line/flex.ts` (`eventInviteFlex`), `lib/line/webhook.ts` (`handleRsvp`), `lib/data/events.ts` |
 | **One-tap subscribe** from inside LINE | `app/subscribe/page.tsx`, `app/api/line/subscribe/route.ts` |

@@ -27,7 +27,7 @@ type QrItem = { type: "action"; action: Record<string, string> };
 const chip = (label: string, text: string): QrItem => ({ type: "action", action: { type: "message", label, text } });
 const DEFAULT_QR: QrItem[] = [
   chip("📋 My projects", "my projects"), chip("📊 Status", "status"),
-  chip("⚙️ Manage", "manage"), chip("💬 Help", "help"),
+  chip("⚙️ Manage", "manage"), chip("🙋 Human", "talk to a human"), chip("💬 Help", "help"),
   { type: "action", action: { type: "uri", label: "🌐 Open app", uri: LIFF("/") } },
 ];
 const textMsg = (text: string, chips: QrItem[] = DEFAULT_QR) => ({ type: "text", text, quickReply: { items: chips.slice(0, 13) } });
@@ -38,7 +38,7 @@ async function reply(replyToken: string | undefined, text: string, chips: QrItem
 const REGISTER_PROMPT =
   `🔔 You're not subscribed yet.\nOpen the app to pick the project(s) you want reminders for:\n${LIFF("/")}\n\nType "status" to see this month's progress.`;
 const MENU_TEXT =
-  `📋 Menu — type or tap a button below:\n• my projects — the projects you follow\n• status — this month's submission progress\n• manage — manage / unsubscribe\n• report — report an issue to the team\n• help — show this menu`;
+  `📋 Menu — type or tap a button below:\n• my projects — the projects you follow\n• status — this month's submission progress\n• manage — manage / unsubscribe\n• report — report an issue to the team\n• talk to a human — reach a real person in this chat\n• help — show this menu`;
 
 async function projectMap(db: Db): Promise<Map<number, string>> {
   const { data } = await db.from("projects").select("id,name").eq("active", true);
@@ -64,6 +64,29 @@ async function setAwaiting(db: Db, chatId: string) {
 }
 async function clearAwaiting(db: Db, chatId: string) {
   await db.from("webhook_await_issue").delete().eq("chat_id", chatId);
+}
+
+// ── human-handoff state (webhook_human_handoff table; serverless-safe) ────────
+// Twin of the issue-capture table above. When a user asks for a real person, the bot goes SILENT for this
+// window so a staff member's manual replies (typed from the LINE Official Account Manager console) aren't
+// drowned out by auto-replies. Refreshed on each message; an exact command / "resume" / cancel hands
+// control back early. "Going silent" is trivial here: the bot only ever answers via replyToken, so simply
+// not calling reply() means no message. This is an app-level flag, independent of LINE's console chat/bot mode.
+const HANDOFF_TTL_MS = 30 * 60000;
+async function isHandedOff(db: Db, chatId: string): Promise<boolean> {
+  const { data } = await db.from("webhook_human_handoff").select("expires_at").eq("chat_id", chatId).maybeSingle();
+  if (!data) return false;
+  if (new Date(data.expires_at as string).getTime() < Date.now()) {
+    await db.from("webhook_human_handoff").delete().eq("chat_id", chatId);
+    return false;
+  }
+  return true;
+}
+async function setHandoff(db: Db, chatId: string) {
+  await db.from("webhook_human_handoff").upsert({ chat_id: chatId, expires_at: new Date(Date.now() + HANDOFF_TTL_MS).toISOString() });
+}
+async function clearHandoff(db: Db, chatId: string) {
+  await db.from("webhook_human_handoff").delete().eq("chat_id", chatId);
 }
 
 const ISSUE_LIMIT_PER_HOUR = 10;
@@ -132,8 +155,17 @@ async function cmdManage(db: Db, targetId: string, replyToken?: string) {
 }
 async function cmdReport(db: Db, targetId: string, replyToken?: string) {
   await setAwaiting(db, targetId);
-  const qr: QrItem[] = [chip("Bot not replying", "The bot is not replying"), chip("Broken link", "A link doesn't work"), chip("Wrong data", "The data looks wrong")];
-  await reply(replyToken, `🛠️ Report an issue\nType the problem you ran into and send it here — the team will take a look.`, qr);
+  const qr: QrItem[] = [chip("Bot not replying", "The bot is not replying"), chip("Broken link", "A link doesn't work"), chip("Wrong data", "The data looks wrong"), chip("🙋 Talk to a human", "talk to a human")];
+  await reply(replyToken, `🛠️ Report an issue\nType the problem you ran into and send it here — the team will take a look.\n(Want to talk to a person instead? Tap "🙋 Talk to a human".)`, qr);
+}
+
+/** Human handoff: pause the bot and let a staff member reply from the LINE OA Manager console. */
+async function cmdHuman(db: Db, targetId: string, replyToken?: string) {
+  await setHandoff(db, targetId);
+  const qr: QrItem[] = [chip("↩️ Back to bot", "resume")];
+  await reply(replyToken,
+    `🙋 Connecting you to a team member.\nSend your question here and someone will reply in this chat during business hours. The automated bot is paused so it won't talk over the reply.\n\nType "resume" to switch back to the automated bot.`,
+    qr);
 }
 
 async function dispatchCommand(db: Db, cmd: Exclude<CommandKey, "cancel">, targetId: string, replyToken?: string) {
@@ -143,6 +175,11 @@ async function dispatchCommand(db: Db, cmd: Exclude<CommandKey, "cancel">, targe
     case "status": return cmdStatus(db, targetId, replyToken);
     case "manage": return cmdManage(db, targetId, replyToken);
     case "report": return cmdReport(db, targetId, replyToken);
+    case "human": return cmdHuman(db, targetId, replyToken);
+    case "resume": {
+      await clearHandoff(db, targetId);
+      return reply(replyToken, `↩️ Back to the automated assistant. Type "help" to see commands.`);
+    }
   }
 }
 
@@ -171,6 +208,21 @@ async function handleCancel(db: Db, text: string, targetId: string, replyToken?:
 
 async function handleText(db: Db, text: string, targetId: string | null, replyToken?: string) {
   const t = (text || "").trim();
+  // human-handoff: once the user asks for a person, the bot stays SILENT so a staff member's replies (sent
+  // from the LINE OA Manager console) aren't drowned out. Only an exact command / "resume" / cancel returns
+  // control to the bot; everything else is left for staff and refreshes the window.
+  if (targetId && (await isHandedOff(db, targetId))) {
+    const [hcmd, hexact] = matchCommand(t);
+    if (hexact && hcmd && hcmd !== "human") {
+      await clearHandoff(db, targetId); // exact command (incl. "resume") → hand control back, dispatch below
+    } else if (isCancel(t)) {
+      await clearHandoff(db, targetId);
+      return reply(replyToken, `↩️ Back to the automated assistant. Type "help" to see commands.`);
+    } else {
+      await setHandoff(db, targetId); // still talking to staff → keep the bot quiet, refresh the window
+      return; // silent — no bot reply
+    }
+  }
   // issue-capture: free text is captured as an issue; an exact command / cancel bails out first.
   if (targetId && (await isAwaiting(db, targetId))) {
     const [cmd, exact] = matchCommand(t);

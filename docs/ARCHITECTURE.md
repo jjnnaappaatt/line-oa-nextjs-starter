@@ -42,6 +42,14 @@ and text `message` (commands). Because serverless functions keep **no in-memory 
 requests, the multi-turn "report an issue" flow stores its "waiting for the next message" state in a DB
 row with a TTL (`webhook_await_issue`).
 
+The same TTL-row pattern powers a **human handoff**: when a user types "talk to a human", a row in
+`webhook_human_handoff` makes the bot go **silent** — it simply stops replying — so a staff member can
+answer from the LINE Official Account Manager console without the bot talking over them. An exact command,
+"resume", or the TTL expiring hands control back. Note this is an *app-level* silence flag: the webhook
+still fires while staff chat, so it's independent of (and complementary to) LINE's own console
+chat/bot response mode. Scheduled pushes (`reminders.ts`) are deliberately **not** gated by it — only the
+bot's inbound auto-replies go quiet.
+
 ## 3. Outbound push + Flex
 
 `lib/line/push.ts` is a ~120-line client over the Messaging API: `pushText`, `pushMessages`,
